@@ -1,0 +1,38 @@
+name: SMT220 Kernel Build
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dosyaları Çek
+        uses: actions/checkout@v3
+
+      - name: Derleme Araçlarını Kur
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
+
+      - name: Kerneli Derle
+        run: |
+          mkdir out
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          # Senin defconfig adını buraya ekledik
+          make O=out gta7litewifi_defconfig
+          # Derlemeyi başlatıyoruz (15-20 dk sürebilir)
+          make -j$(nproc) O=out
+
+      - name: Çıktıları Kontrol Et ve Paketle
+        run: |
+          # Eğer Image.gz-dtb oluşmazsa düz Image dosyasını alalım diye kontrol ekliyoruz
+          ls -R out/arch/arm64/boot/
+
+      - name: Derlenen Kerneli İndirilebilir Yap
+        uses: actions/upload-artifact@v3
+        with:
+          name: SMT220-Kernel-Image
+          path: |
+            out/arch/arm64/boot/Image.gz-dtb
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/Image
