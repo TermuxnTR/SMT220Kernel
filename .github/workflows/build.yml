@@ -11,11 +11,17 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Build Tools
+      - name: Install Python 2 and Tools
         run: |
           sudo apt-get update
-          # Python 2 ve gerekli tüm araçları buraya ekledik
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu python2 python-is-python2
+          # Eski Python 2 depolarını ekliyoruz
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:deadsnakes/ppa
+          sudo apt-get update
+          # Python 2 ve derleme araçlarını kuruyoruz
+          sudo apt-get install -y python2 bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
+          # 'python' komutunu python2'ye yönlendiriyoruz
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Build Kernel
         run: |
