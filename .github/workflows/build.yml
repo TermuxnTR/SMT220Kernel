@@ -1,34 +1,29 @@
 name: SMT220 Kernel Build
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Dosyaları Çek
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Derleme Araçlarını Kur
+      - name: Setup Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
 
-      - name: Kerneli Derle
+      - name: Build Kernel
         run: |
           mkdir -p out
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          make O=out gta7litewifi_defconfig
-          make -j$(nproc) O=out
+          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
-      - name: Derlenen Kerneli İndirilebilir Yap
+      - name: Upload Image
         uses: actions/upload-artifact@v3
         with:
-          name: SMT220-Kernel-Image
-          path: |
-            out/arch/arm64/boot/Image.gz-dtb
-            out/arch/arm64/boot/Image.gz
-            out/arch/arm64/boot/Image
+          name: Kernel-Output
+          path: out/arch/arm64/boot/
