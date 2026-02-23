@@ -11,17 +11,26 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 2 and Tools
+      - name: Install Python 2 from Archive
         run: |
           sudo apt-get update
-          # Eski Python 2 depolarını ekliyoruz
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update
-          # Python 2 ve derleme araçlarını kuruyoruz
-          sudo apt-get install -y python2 bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
-          # 'python' komutunu python2'ye yönlendiriyoruz
-          sudo ln -sf /usr/bin/python2 /usr/bin/python
+          sudo apt-get install -y bc build-essential wget flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
+          
+          # Senin bulduğun arşivden gerekli paketleri indiriyoruz
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-minimal_2.7.18-1~20.04.7_amd64.deb
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7-minimal_2.7.18-1~20.04.7_amd64.deb
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-stdlib_2.7.18-1~20.04.7_amd64.deb
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-1~20.04.7_amd64.deb
+          
+          # Paketleri sırayla kuruyoruz
+          sudo dpkg -i libpython2.7-minimal_2.7.18-1~20.04.7_amd64.deb
+          sudo dpkg -i python2.7-minimal_2.7.18-1~20.04.7_amd64.deb
+          sudo dpkg -i libpython2.7-stdlib_2.7.18-1~20.04.7_amd64.deb
+          sudo dpkg -i python2.7_2.7.18-1~20.04.7_amd64.deb
+          
+          # Python komutunu tanımla
+          sudo ln -sf /usr/bin/python2.7 /usr/bin/python
+          python --version
 
       - name: Build Kernel
         run: |
