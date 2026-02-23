@@ -1,17 +1,17 @@
 name: SMT220 Kernel Build
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup Tools
+      - name: Install Build Tools
         run: |
           sudo apt-get update
           sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
@@ -22,8 +22,8 @@ jobs:
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
-      - name: Upload Image
+      - name: Upload Results
         uses: actions/upload-artifact@v3
         with:
-          name: Kernel-Output
+          name: SMT220-Kernel
           path: out/arch/arm64/boot/
