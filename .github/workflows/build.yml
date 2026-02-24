@@ -11,29 +11,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 2
-        uses: actions/setup-python@v5
+      - name: Setup Conda & Python 2.7
+        uses: s-weigand/setup-conda@v1
         with:
-          python-version: '2.7'
+          python-version: 2.7
 
-      - name: Install Old GCC and Tools
+      - name: Install Build Tools (Apt)
         run: |
           sudo apt-get update
-          # GCC 9 ve gerekli araçları kuruyoruz (Daha toleranslıdır)
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-9-aarch64-linux-gnu gcc-aarch64-linux-gnu
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm
+
+      - name: Install Cross Compiler (Aarch64)
+        run: |
+          # Conda üzerinden daha uyumlu bir cross-compiler kurmayı deniyoruz
+          conda install -c conda-forge gcc_linux-aarch64=9 -y || sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Build Kernel
         run: |
           mkdir -p out
-          sudo ln -sf $(which python2.7) /usr/bin/python
           
+          # Conda ortamında 'python' zaten 2.7 olarak gelecek
           export ARCH=arm64
-          # Derleyici olarak özellikle daha eski olan GCC 9'u işaret ediyoruz
           export CROSS_COMPILE=aarch64-linux-gnu-
           
+          # Config oluşturma
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # Derlemeyi başlat (Hem uyarıları kapat hem de hata toleransını artır)
+          # Derleme: KCFLAGS="-w" ile tüm uyarıları susturuyoruz
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w -fno-pie"
 
       - name: Upload Results
