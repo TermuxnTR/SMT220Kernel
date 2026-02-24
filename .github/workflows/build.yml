@@ -16,31 +16,34 @@ jobs:
         with:
           python-version: 2.7
 
-      - name: Download Legacy GCC 4.9
-        run: |
-          # Android'in resmi eski derleyicisini indiriyoruz
-          wget https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/master.tar.gz -O gcc.tar.gz
-          mkdir -p $GITHUB_WORKSPACE/gcc-4.9
-          tar -xf gcc.tar.gz -C $GITHUB_WORKSPACE/gcc-4.9
-          echo "$GITHUB_WORKSPACE/gcc-4.9/bin" >> $GITHUB_PATH
-
       - name: Install Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev wget xz-utils
+
+      - name: Download and Setup Linaro GCC 7.5
+        run: |
+          # Senin ekran görüntüsündeki tam dosyayı indiriyoruz
+          wget https://releases.linaro.org/components/toolchain/binaries/7.5-2019.12/aarch64-linux-gnu/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+          
+          # Dosyayı çıkart
+          tar -xf gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu.tar.xz
+          
+          # Klasör ismini sadeleştir ve PATH'e ekle
+          mv gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu toolchain
+          echo "$GITHUB_WORKSPACE/toolchain/bin" >> $GITHUB_PATH
 
       - name: Build Kernel
         run: |
           mkdir -p out
           export ARCH=arm64
-          # Derleyici adını indirdiğimiz pakete göre ayarlıyoruz
-          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # Config oluştur
-          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-android- gta7litewifi_defconfig
+          # Config dosyasını oluştur
+          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # Derlemeyi başlat (Eski GCC olduğu için KCFLAGS'e bile gerek kalmayabilir)
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-android-
+          # Derlemeyi başlat (KCFLAGS="-w" ile uyarıları sustur)
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
