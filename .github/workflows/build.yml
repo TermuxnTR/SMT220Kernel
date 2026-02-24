@@ -11,30 +11,36 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python 2.7 (Conda)
+      - name: Setup Conda & Python 2.7
         uses: s-weigand/setup-conda@v1
         with:
           python-version: 2.7
 
+      - name: Download Legacy GCC 4.9
+        run: |
+          # Android'in resmi eski derleyicisini indiriyoruz
+          wget https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/master.tar.gz -O gcc.tar.gz
+          mkdir -p $GITHUB_WORKSPACE/gcc-4.9
+          tar -xf gcc.tar.gz -C $GITHUB_WORKSPACE/gcc-4.9
+          echo "$GITHUB_WORKSPACE/gcc-4.9/bin" >> $GITHUB_PATH
+
       - name: Install Build Tools
         run: |
           sudo apt-get update
-          # Gerekli tüm araçları ve derleyiciyi en baştan kuruyoruz
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev
 
       - name: Build Kernel
         run: |
           mkdir -p out
           export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-gnu-
+          # Derleyici adını indirdiğimiz pakete göre ayarlıyoruz
+          export CROSS_COMPILE=aarch64-linux-android-
           
           # Config oluştur
-          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
+          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-android- gta7litewifi_defconfig
           
-          # Derleme (Zırhlı Komut):
-          # KCFLAGS="-w" -> Uyarıları gizler
-          # -fno-stack-protector -> Modern güvenlik hatalarını engeller
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w -fno-stack-protector"
+          # Derlemeyi başlat (Eski GCC olduğu için KCFLAGS'e bile gerek kalmayabilir)
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-android-
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
