@@ -30,31 +30,43 @@ jobs:
 
       - name: Surgical Patches (Hata Odaklı Düzenleme)
         run: |
-          # 1. İlk Hata: Sched (kernel/sched/sched.h)
           sed -i 's/inline void uclamp_se_set/void uclamp_se_set/g' kernel/sched/sched.h
-          
-          # 2. İkinci Hata: Blk-Crypto (include/linux/blk-crypto.h)
           sed -i 's/inline void blk_crypto_flock/void blk_crypto_flock/g' include/linux/blk-crypto.h
-          
-          # 3. Üçüncü Hata: Keyslot Manager (include/linux/keyslot-manager.h)
-          # Tam olarak belirttiğin o satırı düzeltiyoruz:
           sed -i 's/inline void ksm_flock/void ksm_flock/g' include/linux/keyslot-manager.h
-          
           echo "Hocam üç inatçı dosya da el ile düzeltildi, yola devam!"
 
-      - name: Build Kernel
+      - name: Build Kernel with KVM & DTBs
         run: |
           mkdir -p out
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
+          # 1. Defconfig oluştur
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # Derlemeyi başlat (KCFLAGS="-w" ile sadece görsel kalabalığı engelliyoruz)
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w"
+          # 2. KVM ve EL2 Ayarlarını Enjekte Et (Şalterler açılıyor)
+          echo "CONFIG_VIRTUALIZATION=y" >> out/.config
+          echo "CONFIG_KVM=y" >> out/.config
+          echo "CONFIG_KVM_ARM_HOST=y" >> out/.config
+          echo "CONFIG_KVM_MMIO=y" >> out/.config
+          echo "CONFIG_ARM64_V8_2_LVA=y" >> out/.config
+          echo "CONFIG_ARM64_PA_BITS_48=y" >> out/.config
+          
+          # 3. Ayarları doğrula ve bağımlılıkları çöz
+          make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          
+          # 4. Kernel ve DTB'leri birlikte derle
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w" Image.gz dtbs
+
+      - name: Merge Image and DTB (Wi-Fi Fix)
+        run: |
+          # Wi-Fi için Image.gz ve derlenen tüm DTB'leri 'cat' ile birleştiriyoruz
+          # Mediatek klasöründeki tüm dtb'leri kernelin sonuna ekler
+          cat out/arch/arm64/boot/Image out/arch/arm64/boot/dts/mediatek/*.dtb > out/arch/arm64/boot/Image-final
+          echo "Hocam Image ve DTB'ler başarıyla kaynatıldı!"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: SMT220-Kernel
-          path: out/arch/arm64/boot/
+          name: SMT220-Kernel-Final
+          path: out/arch/arm64/boot/Image-final
