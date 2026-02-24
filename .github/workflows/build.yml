@@ -28,12 +28,15 @@ jobs:
           mv gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu toolchain
           echo "$GITHUB_WORKSPACE/toolchain/bin" >> $GITHUB_PATH
 
-      - name: Patch Sched Error (The Fix)
+      - name: Multi-Patch Errors (Sched & Crypto)
         run: |
-          # Hata veren fonksiyonun başındaki 'inline' ibaresini siliyoruz.
-          # Bu sayede derleyici 'body not available' demeyi bırakacak.
+          # 1. Sched hatasını düzelt
           sed -i 's/inline void uclamp_se_set/void uclamp_se_set/g' kernel/sched/sched.h
-          echo "Hata veren fonksiyon yamalandı!"
+          
+          # 2. Crypto hatasını düzelt (Az önce çıkan hata)
+          sed -i 's/inline void blk_crypto_flock/void blk_crypto_flock/g' include/linux/blk-crypto.h
+          
+          echo "Bütün inatçı fonksiyonlar yamalandı!"
 
       - name: Build Kernel
         run: |
@@ -43,7 +46,7 @@ jobs:
           
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # KCFLAGS="-w" ile diğer ufak tefek uyarıları da susturuyoruz
+          # KCFLAGS="-w" ile sessizce derlemeye devam
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w"
 
       - name: Upload Results
