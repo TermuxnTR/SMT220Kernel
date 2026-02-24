@@ -28,19 +28,19 @@ jobs:
           mv gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu toolchain
           echo "$GITHUB_WORKSPACE/toolchain/bin" >> $GITHUB_PATH
 
-      - name: Global Kernel Patch (Kökten Çözüm)
+      - name: Surgical Patches (Hata Odaklı Düzenleme)
         run: |
-          # Kernel içindeki tüm .h dosyalarını bul ve 'always_inline' hatalarına yol açan 'inline void' yazılarını temizle
-          find . -type f -name "*.h" -exec sed -i 's/inline void/void/g' {} +
-          find . -type f -name "*.h" -exec sed -i 's/static inline void/static void/g' {} +
+          # 1. İlk Hata: Sched (kernel/sched/sched.h)
           sed -i 's/inline void uclamp_se_set/void uclamp_se_set/g' kernel/sched/sched.h
           
-          # 2. Crypto hatası yaması
+          # 2. İkinci Hata: Blk-Crypto (include/linux/blk-crypto.h)
           sed -i 's/inline void blk_crypto_flock/void blk_crypto_flock/g' include/linux/blk-crypto.h
           
-          # 3. Keyslot Manager hatası yaması (Yeni aldığın hata)
+          # 3. Üçüncü Hata: Keyslot Manager (include/linux/keyslot-manager.h)
+          # Tam olarak belirttiğin o satırı düzeltiyoruz:
           sed -i 's/inline void ksm_flock/void ksm_flock/g' include/linux/keyslot-manager.h
-          echo "Tüm kernel dosyaları tarandı ve inline takıları temizlendi!"
+          
+          echo "Hocam üç inatçı dosya da el ile düzeltildi, yola devam!"
 
       - name: Build Kernel
         run: |
@@ -50,7 +50,7 @@ jobs:
           
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # KCFLAGS="-w" ile uyarıları kapatıp derlemeyi bitiriyoruz
+          # Derlemeyi başlat (KCFLAGS="-w" ile sadece görsel kalabalığı engelliyoruz)
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w"
 
       - name: Upload Results
