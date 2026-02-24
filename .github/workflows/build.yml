@@ -11,34 +11,30 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Conda & Python 2.7
+      - name: Setup Python 2.7 (Conda)
         uses: s-weigand/setup-conda@v1
         with:
           python-version: 2.7
 
-      - name: Install Build Tools (Apt)
+      - name: Install Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm
-
-      - name: Install Cross Compiler (Aarch64)
-        run: |
-          # Conda üzerinden daha uyumlu bir cross-compiler kurmayı deniyoruz
-          conda install -c conda-forge gcc_linux-aarch64=9 -y || sudo apt-get install -y gcc-aarch64-linux-gnu
+          # Gerekli tüm araçları ve derleyiciyi en baştan kuruyoruz
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
 
       - name: Build Kernel
         run: |
           mkdir -p out
-          
-          # Conda ortamında 'python' zaten 2.7 olarak gelecek
           export ARCH=arm64
           export CROSS_COMPILE=aarch64-linux-gnu-
           
-          # Config oluşturma
+          # Config oluştur
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           
-          # Derleme: KCFLAGS="-w" ile tüm uyarıları susturuyoruz
-          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w -fno-pie"
+          # Derleme (Zırhlı Komut):
+          # KCFLAGS="-w" -> Uyarıları gizler
+          # -fno-stack-protector -> Modern güvenlik hatalarını engeller
+          make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KCFLAGS="-w -fno-stack-protector"
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
