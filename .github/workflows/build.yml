@@ -6,26 +6,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # Özellikle biraz daha eski ama Python 2 dostu sürümü seçtik
+    runs-on: ubuntu-latest  # Hemen başlasın diye güncele döndük
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 2
-        uses: actions/setup-python@v5
+      - name: Setup Python 2.7 (Conda ile)
+        uses: s-weigand/setup-conda@v1
         with:
-          python-version: '2.7' 
+          python-version: 2.7
 
       - name: Install Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu mime-support
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
 
       - name: Build Kernel
         run: |
           mkdir -p out
-          # Python 2'nin sistemde 'python' olarak tanındığından emin oluyoruz
-          sudo ln -sf $(which python2.7) /usr/bin/python
+          # Conda zaten 'python' komutunu 2.7 yapacak
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
