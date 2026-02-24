@@ -6,35 +6,26 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Özellikle biraz daha eski ama Python 2 dostu sürümü seçtik
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Python 2 from Archive
+      - name: Install Python 2
+        uses: actions/setup-python@v5
+        with:
+          python-version: '2.7' 
+
+      - name: Install Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential wget flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu
-          
-          # Senin bulduğun arşivden gerekli paketleri indiriyoruz
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-minimal_2.7.18-1~20.04.7_amd64.deb
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7-minimal_2.7.18-1~20.04.7_amd64.deb
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/libpython2.7-stdlib_2.7.18-1~20.04.7_amd64.deb
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/p/python2.7/python2.7_2.7.18-1~20.04.7_amd64.deb
-          
-          # Paketleri sırayla kuruyoruz
-          sudo dpkg -i libpython2.7-minimal_2.7.18-1~20.04.7_amd64.deb
-          sudo dpkg -i python2.7-minimal_2.7.18-1~20.04.7_amd64.deb
-          sudo dpkg -i libpython2.7-stdlib_2.7.18-1~20.04.7_amd64.deb
-          sudo dpkg -i python2.7_2.7.18-1~20.04.7_amd64.deb
-          
-          # Python komutunu tanımla
-          sudo ln -sf /usr/bin/python2.7 /usr/bin/python
-          python --version
+          sudo apt-get install -y bc build-essential flex bison libssl-dev libelf-dev clang lld llvm gcc-aarch64-linux-gnu mime-support
 
       - name: Build Kernel
         run: |
           mkdir -p out
+          # Python 2'nin sistemde 'python' olarak tanındığından emin oluyoruz
+          sudo ln -sf $(which python2.7) /usr/bin/python
           make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- gta7litewifi_defconfig
           make -j$(nproc) O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 
